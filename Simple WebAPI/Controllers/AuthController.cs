@@ -15,14 +15,20 @@ namespace Simple_WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    
     public class AuthController : ControllerBase
     {
 
-        public static ApiUser user = new ApiUser();
+        private static ApiUser user = new ApiUser();
         private readonly IConfiguration _configuration;
         private readonly TodolistContext _context;
         private readonly IUserService _userService;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="context"></param>
         public AuthController(IConfiguration configuration, TodolistContext context)
         {
             _configuration = configuration;
@@ -35,7 +41,30 @@ namespace Simple_WebAPI.Controllers
             var userName = _userService.GetMyName();
             return Ok(userName);
         }
+        
+        // GET: api/ApiUsers/5
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiUser>> GetApiUser(int id)
+        {
+            var apiUser = await _context.ApiUsers.FindAsync(id);
 
+            if (apiUser == null)
+            {
+                return NotFound();
+            }
+
+            return apiUser;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("register")]
         public async Task<ActionResult<ApiUser>> Register(ApiUserDTO request)
         {
@@ -45,36 +74,59 @@ namespace Simple_WebAPI.Controllers
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
 
-            _context.ApiUsers.Add(apiuser);
-            //await _context.SaveChangesAsync();
+            _context.ApiUsers.Add(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (ApiUserExists(user.Id))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
 
-            //CreatedAtAction("Register", user);
+            return CreatedAtAction("GetApiUser", new { id = user.Id }, user);
 
-            return Ok(user);
         }
 
         [HttpPost("login")]
-        
+
         public async Task<ActionResult<string>> Login(ApiUserDTO request)
         {
-            if (user.UserName != request.UserName)
+            var rs = await _context.ApiUsers.ToListAsync();
+            foreach (var i in rs)
             {
-                return BadRequest("User not found.");
+                if (request.UserName == i.UserName)
+                {
+                    if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+                    {
+                        return BadRequest("Wrong password.");
+                    }
+
+                    string token = CreateToken(user);
+
+                    var refreshToken = GenerateRefreshToken();
+                    SetRefreshToken(refreshToken);
+
+                    user.RefreshToken = refreshToken.Token;
+                    user.UserName = request.UserName;
+                    user.Id = i.Id;
+
+                    _context.Entry(user).State = EntityState.Modified;
+
+                    await _context.SaveChangesAsync();
+
+                    return Ok(token);
+                }
             }
+            return BadRequest("User not found.");
 
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
-            {
-                return BadRequest("Wrong password.");
-            }
-
-            string token = CreateToken(user);
-
-            var refreshToken = GenerateRefreshToken();
-            SetRefreshToken(refreshToken);
-
-            Console.WriteLine(refreshToken.Token);
-
-            return Ok(token);
         }
 
         [HttpPost("refresh-token")]
@@ -168,5 +220,9 @@ namespace Simple_WebAPI.Controllers
             user.TokenExpires = newRefreshToken.Expires;
         }
 
+        private bool ApiUserExists(int id)
+        {
+            return _context.ApiUsers.Any(e => e.Id == id);
+        }
     }
 }

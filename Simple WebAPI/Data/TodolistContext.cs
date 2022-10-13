@@ -61,6 +61,8 @@ namespace Simple_WebAPI.Data
             OnModelCreatingPartial(modelBuilder);
         }
 
+
+
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
 }
