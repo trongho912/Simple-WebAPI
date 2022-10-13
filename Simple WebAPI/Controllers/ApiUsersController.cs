@@ -12,52 +12,47 @@ namespace Simple_WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TodoItemsController : ControllerBase
+    public class ApiUsersController : ControllerBase
     {
         private readonly TodolistContext _context;
 
-        public TodoItemsController(TodolistContext context)
+        public ApiUsersController(TodolistContext context)
         {
             _context = context;
         }
 
-        // GET: api/TodoItems
+        // GET: api/ApiUsers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TodoItem>>> GetTodoItems()
+        public async Task<ActionResult<IEnumerable<ApiUser>>> GetApiUsers()
         {
-            return await _context.TodoItems.ToListAsync();
+            return await _context.ApiUsers.ToListAsync();
         }
 
-        // GET: api/TodoItems/5
+        // GET: api/ApiUsers/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TodoItem>> GetTodoItem(int id)
+        public async Task<ActionResult<ApiUser>> GetApiUser(int id)
         {
-            var todoItem = await _context.TodoItems.FindAsync(id);
+            var apiUser = await _context.ApiUsers.FindAsync(id);
 
-            if (todoItem == null)
+            if (apiUser == null)
             {
                 return NotFound();
             }
 
-            return todoItem;
+            return apiUser;
         }
 
-        // PUT: api/TodoItems/5
+        // PUT: api/ApiUsers/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTodoItem(int id, TodoItem todoItem)
+        public async Task<IActionResult> PutApiUser(int id, ApiUser apiUser)
         {
-            if (id != todoItem.Id)
+            if (id != apiUser.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(todoItem).State = EntityState.Modified;
-
-            if (todoItem == null)
-            {
-                return NotFound();
-            }
+            _context.Entry(apiUser).State = EntityState.Modified;
 
             try
             {
@@ -65,7 +60,7 @@ namespace Simple_WebAPI.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!TodoItemExists(id))
+                if (!ApiUserExists(id))
                 {
                     return NotFound();
                 }
@@ -78,19 +73,19 @@ namespace Simple_WebAPI.Controllers
             return NoContent();
         }
 
-        // POST: api/TodoItems
+        // POST: api/ApiUsers
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<TodoItem>> PostTodoItem(TodoItem todoItem)
+        public async Task<ActionResult<ApiUser>> PostApiUser(ApiUser apiUser)
         {
-            _context.TodoItems.Add(todoItem);
+            _context.ApiUsers.Add(apiUser);
             try
             {
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateException)
             {
-                if (TodoItemExists(todoItem.Id))
+                if (ApiUserExists(apiUser.Id))
                 {
                     return Conflict();
                 }
@@ -100,28 +95,28 @@ namespace Simple_WebAPI.Controllers
                 }
             }
 
-            return CreatedAtAction("GetTodoItem", new { id = todoItem.Id }, todoItem);
+            return CreatedAtAction("GetApiUser", new { id = apiUser.Id }, apiUser);
         }
 
-        // DELETE: api/TodoItems/5
+        // DELETE: api/ApiUsers/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTodoItem(int id)
+        public async Task<IActionResult> DeleteApiUser(int id)
         {
-            var todoItem = await _context.TodoItems.FindAsync(id);
-            if (todoItem == null)
+            var apiUser = await _context.ApiUsers.FindAsync(id);
+            if (apiUser == null)
             {
                 return NotFound();
             }
 
-            _context.TodoItems.Remove(todoItem);
+            _context.ApiUsers.Remove(apiUser);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool TodoItemExists(int id)
+        private bool ApiUserExists(int id)
         {
-            return _context.TodoItems.Any(e => e.Id == id);
+            return _context.ApiUsers.Any(e => e.Id == id);
         }
     }
 }

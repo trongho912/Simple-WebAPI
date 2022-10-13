@@ -36,6 +36,10 @@ namespace Simple_WebAPI.Data
 
                 entity.Property(e => e.RefreshToken).HasColumnName("refreshToken");
 
+                entity.Property(e => e.TokenCreated).HasColumnType("datetime");
+
+                entity.Property(e => e.TokenExpires).HasColumnType("datetime");
+
                 entity.Property(e => e.UserName)
                     .HasMaxLength(50)
                     .HasColumnName("user_name");

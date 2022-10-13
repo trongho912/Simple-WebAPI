@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Swashbuckle.AspNetCore.Filters;
+using Simple_WebAPI.Services.UserService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,10 @@ builder.Services.AddDbContext<TodolistContext>(opt =>
 //    opt.UseSqlServer(builder.Configuration.GetConnectionString("UserDatabase")));
 
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -45,7 +50,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8
                 .GetBytes(builder.Configuration.GetSection("Jwt:Key").Value)),
             ValidateIssuer = false,
-            ValidateAudience = false
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddEndpointsApiExplorer();
@@ -61,6 +68,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

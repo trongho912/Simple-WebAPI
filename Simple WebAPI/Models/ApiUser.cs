@@ -11,13 +11,8 @@ namespace Simple_WebAPI.Models
         public string UserName { get; set; }
         public byte[] PasswordHash { get; set; }
         public byte[] PasswordSalt { get; set; }
-        public byte[] RefreshToken { get; set; }
-    }
-
-    public partial class ApiUserDTO
-    {
-        public string UserName { get; set; }
-        public string Password{ get; set; }
-
+        public string RefreshToken { get; set; }
+        public DateTime? TokenCreated { get; set; }
+        public DateTime? TokenExpires { get; set; }
     }
 }

@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Simple_WebAPI.Data;
 using Simple_WebAPI.Models;
+using Simple_WebAPI.Services.UserService;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -13,15 +17,23 @@ namespace Simple_WebAPI.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
+
         public static ApiUser user = new ApiUser();
         private readonly IConfiguration _configuration;
-        //private readonly UserContext _context;
-        //private readonly IUserService _userService;
+        private readonly TodolistContext _context;
+        private readonly IUserService _userService;
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, TodolistContext context)
         {
             _configuration = configuration;
-            //_context = context;
+            _context = context;
+        }
+
+        [HttpGet, Authorize]
+        public ActionResult<string> GetMe()
+        {
+            var userName = _userService.GetMyName();
+            return Ok(userName);
         }
 
         [HttpPost("register")]
@@ -33,7 +45,7 @@ namespace Simple_WebAPI.Controllers
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
 
-            //_context.Users.Add(user);
+            _context.ApiUsers.Add(apiuser);
             //await _context.SaveChangesAsync();
 
             //CreatedAtAction("Register", user);
@@ -42,6 +54,7 @@ namespace Simple_WebAPI.Controllers
         }
 
         [HttpPost("login")]
+        
         public async Task<ActionResult<string>> Login(ApiUserDTO request)
         {
             if (user.UserName != request.UserName)
@@ -56,8 +69,31 @@ namespace Simple_WebAPI.Controllers
 
             string token = CreateToken(user);
 
-            //var refreshToken = GenerateRefreshToken();
-            //SetRefreshToken(refreshToken);
+            var refreshToken = GenerateRefreshToken();
+            SetRefreshToken(refreshToken);
+
+            Console.WriteLine(refreshToken.Token);
+
+            return Ok(token);
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<string>> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (!user.RefreshToken.Equals(refreshToken))
+            {
+                return Unauthorized("Invalid Refresh Token.");
+            }
+            else if (user.TokenExpires < DateTime.Now)
+            {
+                return Unauthorized("Token expired.");
+            }
+
+            string token = CreateToken(user);
+            var newRefreshToken = GenerateRefreshToken();
+            SetRefreshToken(newRefreshToken);
 
             return Ok(token);
         }
@@ -96,12 +132,40 @@ namespace Simple_WebAPI.Controllers
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(1),
+                expires: DateTime.UtcNow.AddMinutes(10),
                 signingCredentials: creds);
+
+            Console.WriteLine(token);
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
             return jwt;
+        }
+
+        private RefreshToken GenerateRefreshToken()
+        {
+            var refreshToken = new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expires = DateTime.Now.AddMinutes(30),
+                Created = DateTime.Now
+            };
+
+            return refreshToken;
+        }
+
+        private void SetRefreshToken(RefreshToken newRefreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = newRefreshToken.Expires
+            };
+            Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
+
+            user.RefreshToken = newRefreshToken.Token;
+            user.TokenCreated = newRefreshToken.Created;
+            user.TokenExpires = newRefreshToken.Expires;
         }
 
     }
