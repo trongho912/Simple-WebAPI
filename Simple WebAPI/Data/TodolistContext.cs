@@ -26,9 +26,7 @@ namespace Simple_WebAPI.Data
         {
             modelBuilder.Entity<ApiUser>(entity =>
             {
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("id");
+                entity.Property(e => e.Id).HasColumnName("id");
 
                 entity.Property(e => e.PasswordHash).HasColumnName("passwordHash");
 
@@ -60,8 +58,6 @@ namespace Simple_WebAPI.Data
 
             OnModelCreatingPartial(modelBuilder);
         }
-
-
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }

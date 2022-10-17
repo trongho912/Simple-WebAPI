@@ -79,21 +79,8 @@ namespace Simple_WebAPI.Controllers
         public async Task<ActionResult<ApiUser>> PostApiUser(ApiUser apiUser)
         {
             _context.ApiUsers.Add(apiUser);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (ApiUserExists(apiUser.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetApiUser", new { id = apiUser.Id }, apiUser);
         }

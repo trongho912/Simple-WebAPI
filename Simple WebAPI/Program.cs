@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Swashbuckle.AspNetCore.Filters;
 using Simple_WebAPI.Services.UserService;
+using Simple_WebAPI.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

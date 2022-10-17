@@ -7,6 +7,7 @@ using Simple_WebAPI.Data;
 using Simple_WebAPI.Models;
 using Simple_WebAPI.Services.UserService;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -20,6 +21,7 @@ namespace Simple_WebAPI.Controllers
     {
 
         private static ApiUser user = new ApiUser();
+        private string original;
         private readonly IConfiguration _configuration;
         private readonly TodolistContext _context;
         private readonly IUserService _userService;
@@ -75,31 +77,27 @@ namespace Simple_WebAPI.Controllers
             user.PasswordSalt = passwordSalt;
 
             _context.ApiUsers.Add(user);
-            try
-            {
+ 
                 await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (ApiUserExists(user.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
 
             return CreatedAtAction("GetApiUser", new { id = user.Id }, user);
-
         }
 
-        [HttpPost("login")]
+        private ActionResult<ApiUser> Content(HttpStatusCode conflict, string original)
+        {
+            throw new NotImplementedException();
+        }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("login")]
         public async Task<ActionResult<string>> Login(ApiUserDTO request)
         {
             var rs = await _context.ApiUsers.ToListAsync();
+            Console.WriteLine(rs);
             foreach (var i in rs)
             {
                 if (request.UserName == i.UserName)
@@ -111,24 +109,28 @@ namespace Simple_WebAPI.Controllers
 
                     string token = CreateToken(user);
 
-                    var refreshToken = GenerateRefreshToken();
-                    SetRefreshToken(refreshToken);
+                    //var refreshToken = GenerateRefreshToken();
+                    //SetRefreshToken(refreshToken);
 
-                    user.RefreshToken = refreshToken.Token;
-                    user.UserName = request.UserName;
-                    user.Id = i.Id;
+                    //user.RefreshToken = refreshToken.Token;
+                    //user.UserName = request.UserName;
+                    //user.Id = i.Id;
 
-                    _context.Entry(user).State = EntityState.Modified;
+                    //_context.Entry(user).State = EntityState.Modified;
 
-                    await _context.SaveChangesAsync();
+                    //await _context.SaveChangesAsync();
 
+                    
                     return Ok(token);
                 }
             }
             return BadRequest("User not found.");
 
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         [HttpPost("refresh-token")]
         public async Task<ActionResult<string>> RefreshToken()
         {
@@ -149,7 +151,12 @@ namespace Simple_WebAPI.Controllers
 
             return Ok(token);
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="password"></param>
+        /// <param name="passwordHash"></param>
+        /// <param name="passwordSalt"></param>
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
             using (var hmac = new HMACSHA512())
