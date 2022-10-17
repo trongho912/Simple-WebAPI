@@ -83,11 +83,6 @@ namespace Simple_WebAPI.Controllers
             return CreatedAtAction("GetApiUser", new { id = user.Id }, user);
         }
 
-        private ActionResult<ApiUser> Content(HttpStatusCode conflict, string original)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// 
         /// </summary>
@@ -102,15 +97,15 @@ namespace Simple_WebAPI.Controllers
             {
                 if (request.UserName == i.UserName)
                 {
-                    if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+                    if (!VerifyPasswordHash(request.Password, i.PasswordHash, i.PasswordSalt))
                     {
                         return BadRequest("Wrong password.");
                     }
 
-                    string token = CreateToken(user);
+                    string token = CreateToken(i);
 
-                    //var refreshToken = GenerateRefreshToken();
-                    //SetRefreshToken(refreshToken);
+                    var refreshToken = GenerateRefreshToken();
+                    SetRefreshToken(refreshToken);
 
                     //user.RefreshToken = refreshToken.Token;
                     //user.UserName = request.UserName;
@@ -120,7 +115,7 @@ namespace Simple_WebAPI.Controllers
 
                     //await _context.SaveChangesAsync();
 
-                    
+
                     return Ok(token);
                 }
             }
@@ -191,7 +186,7 @@ namespace Simple_WebAPI.Controllers
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(10),
+                expires: DateTime.Now.AddMinutes(10),
                 signingCredentials: creds);
 
             Console.WriteLine(token);
