@@ -13,7 +13,7 @@ namespace Simple_WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize] 
     public class TodoItemsController : ControllerBase
     {
         private readonly TodolistContext _context;

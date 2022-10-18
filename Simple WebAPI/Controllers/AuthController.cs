@@ -10,7 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
-
+using System.Text;
 
 namespace Simple_WebAPI.Controllers
 {
@@ -21,7 +21,6 @@ namespace Simple_WebAPI.Controllers
     {
 
         private static ApiUser user = new ApiUser();
-        private string original;
         private readonly IConfiguration _configuration;
         private readonly TodolistContext _context;
         private readonly IUserService _userService;
@@ -31,10 +30,11 @@ namespace Simple_WebAPI.Controllers
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="context"></param>
-        public AuthController(IConfiguration configuration, TodolistContext context)
+        public AuthController(IConfiguration configuration, TodolistContext context, IUserService userService)
         {
             _configuration = configuration;
             _context = context;
+            _userService = userService; 
         }
 
         [HttpGet, Authorize]
@@ -107,11 +107,16 @@ namespace Simple_WebAPI.Controllers
                     var refreshToken = GenerateRefreshToken();
                     SetRefreshToken(refreshToken);
 
-                    //user.RefreshToken = refreshToken.Token;
+                    Console.WriteLine(refreshToken.Token);
+
+                    i.RefreshToken = refreshToken.Token;
+                    i.TokenExpires = refreshToken.Expires;
+                    i.TokenCreated = refreshToken.Created;
                     //user.UserName = request.UserName;
                     //user.Id = i.Id;
 
-                    //_context.Entry(user).State = EntityState.Modified;
+                    _context.Entry(i).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
 
                     //await _context.SaveChangesAsync();
 
@@ -143,6 +148,9 @@ namespace Simple_WebAPI.Controllers
             string token = CreateToken(user);
             var newRefreshToken = GenerateRefreshToken();
             SetRefreshToken(newRefreshToken);
+
+            //_context.Entry(user).State = EntityState.Modified;
+            //await _context.SaveChangesAsync();
 
             return Ok(token);
         }
@@ -222,9 +230,24 @@ namespace Simple_WebAPI.Controllers
             user.TokenExpires = newRefreshToken.Expires;
         }
 
-        private bool ApiUserExists(int id)
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
         {
-            return _context.ApiUsers.Any(e => e.Id == id);
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false, //you might want to validate the audience and issuer depending on your use case
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8
+                    .GetBytes(_configuration.GetSection("Jwt:Key").Value)),
+            ValidateLifetime = false //here we are saying that we don't care about the token's expiration date
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken;
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("Invalid token");
+            return principal;
         }
     }
 }
