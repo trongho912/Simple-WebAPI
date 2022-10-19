@@ -78,7 +78,7 @@ namespace Simple_WebAPI.Controllers
 
             _context.ApiUsers.Add(user);
  
-                await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetApiUser", new { id = user.Id }, user);
         }
@@ -112,14 +112,9 @@ namespace Simple_WebAPI.Controllers
                     i.RefreshToken = refreshToken.Token;
                     i.TokenExpires = refreshToken.Expires;
                     i.TokenCreated = refreshToken.Created;
-                    //user.UserName = request.UserName;
-                    //user.Id = i.Id;
 
                     _context.Entry(i).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
-
-                    //await _context.SaveChangesAsync();
-
 
                     return Ok(token);
                 }
@@ -132,27 +127,46 @@ namespace Simple_WebAPI.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost("refresh-token")]
-        public async Task<ActionResult<string>> RefreshToken()
+        public async Task<ActionResult<string>> RefreshToken(RefreshTokenRequest request)
         {
-            var refreshToken = Request.Cookies["refreshToken"];
+            var rs = await _context.ApiUsers.ToListAsync();
 
-            if (!user.RefreshToken.Equals(refreshToken))
+            foreach (var i in rs)
             {
-                return Unauthorized("Invalid Refresh Token.");
-            }
-            else if (user.TokenExpires < DateTime.Now)
-            {
-                return Unauthorized("Token expired.");
-            }
+                if (request.UserName == i.UserName)
+                {
+                    if (!VerifyPasswordHash(request.Password, i.PasswordHash, i.PasswordSalt))
+                    {
+                        return BadRequest("Wrong password.");
+                    }
 
-            string token = CreateToken(user);
-            var newRefreshToken = GenerateRefreshToken();
-            SetRefreshToken(newRefreshToken);
+                    if (i.RefreshToken != request.Token)
+                    {
+                        return Unauthorized("Invalid Refresh Token.");
+                    }
+                    else if (i.TokenExpires < DateTime.Now)
+                    {
+                        return Unauthorized("Token expired.");
+                    }
 
-            //_context.Entry(user).State = EntityState.Modified;
-            //await _context.SaveChangesAsync();
+                    string newToken = CreateToken(i);
 
-            return Ok(token);
+                    var newRefreshToken = GenerateRefreshToken();
+                    SetRefreshToken(newRefreshToken);
+
+                    Console.WriteLine(newRefreshToken.Token);
+
+                    i.RefreshToken = newRefreshToken.Token;
+                    i.TokenExpires = newRefreshToken.Expires;
+                    i.TokenCreated = newRefreshToken.Created;
+
+                    _context.Entry(i).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+                    return Ok(newToken);
+                }
+            }   
+            return BadRequest("User not found.");
+            
         }
         /// <summary>
         /// 
@@ -228,26 +242,6 @@ namespace Simple_WebAPI.Controllers
             user.RefreshToken = newRefreshToken.Token;
             user.TokenCreated = newRefreshToken.Created;
             user.TokenExpires = newRefreshToken.Expires;
-        }
-
-        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
-        {
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = false, //you might want to validate the audience and issuer depending on your use case
-                ValidateIssuer = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8
-                    .GetBytes(_configuration.GetSection("Jwt:Key").Value)),
-            ValidateLifetime = false //here we are saying that we don't care about the token's expiration date
-            };
-            var tokenHandler = new JwtSecurityTokenHandler();
-            SecurityToken securityToken;
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-            var jwtSecurityToken = securityToken as JwtSecurityToken;
-            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                throw new SecurityTokenException("Invalid token");
-            return principal;
         }
     }
 }
