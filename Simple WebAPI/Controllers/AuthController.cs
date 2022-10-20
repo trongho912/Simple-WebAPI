@@ -20,7 +20,7 @@ namespace Simple_WebAPI.Controllers
     public class AuthController : ControllerBase
     {
 
-        private static ApiUser user = new ApiUser();
+        //private static ApiUser user = new ApiUser();
         private readonly IConfiguration _configuration;
         private readonly TodolistContext _context;
         private readonly IUserService _userService;
@@ -72,6 +72,7 @@ namespace Simple_WebAPI.Controllers
         {
             CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
+            ApiUser user = new ApiUser();
             user.UserName = request.UserName;
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
@@ -105,7 +106,7 @@ namespace Simple_WebAPI.Controllers
                     string token = CreateToken(i);
 
                     var refreshToken = GenerateRefreshToken();
-                    SetRefreshToken(refreshToken);
+                    //SetRefreshToken(refreshToken);
 
                     Console.WriteLine(refreshToken.Token);
 
@@ -152,7 +153,7 @@ namespace Simple_WebAPI.Controllers
                     string newToken = CreateToken(i);
 
                     var newRefreshToken = GenerateRefreshToken();
-                    SetRefreshToken(newRefreshToken);
+                    //SetRefreshToken(newRefreshToken);
 
                     Console.WriteLine(newRefreshToken.Token);
 
@@ -230,18 +231,19 @@ namespace Simple_WebAPI.Controllers
             return refreshToken;
         }
 
-        private void SetRefreshToken(RefreshToken newRefreshToken)
-        {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Expires = newRefreshToken.Expires
-            };
-            Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
+        //private void SetRefreshToken(RefreshToken newRefreshToken)
+        //{
+        //    var cookieOptions = new CookieOptions
+        //    {
+        //        HttpOnly = true,
+        //        Expires = newRefreshToken.Expires
+        //    };
+        //    Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 
-            user.RefreshToken = newRefreshToken.Token;
-            user.TokenCreated = newRefreshToken.Created;
-            user.TokenExpires = newRefreshToken.Expires;
-        }
+        //    //ApiUser user = new ApiUser();
+        //    //user.RefreshToken = newRefreshToken.Token;
+        //    //user.TokenCreated = newRefreshToken.Created;
+        //    //user.TokenExpires = newRefreshToken.Expires;
+        //}
     }
 }
